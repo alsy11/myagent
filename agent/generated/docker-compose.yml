@@ -1,0 +1,48 @@
+version: "3.8"
+
+services:
+  app:
+    build: .
+    container_name: space-fractions-app
+    ports:
+      - "3001:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DATABASE_URL=postgresql://spacefractions:spacefractions@db:5432/spacefractions
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=change-me-to-a-long-random-string-in-production
+      - JWT_EXPIRES_IN=24h
+      - ADMIN_USERNAME=admin
+      - ADMIN_PASSWORD=admin123
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    restart: unless-stopped
+
+  db:
+    image: postgres:14-alpine
+    container_name: space-fractions-db
+    environment:
+      - POSTGRES_USER=spacefractions
+      - POSTGRES_PASSWORD=spacefractions
+      - POSTGRES_DB=spacefractions
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U spacefractions -d spacefractions"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  redis:
+    image: redis:6-alpine
+    container_name: space-fractions-redis
+    restart: unless-stopped
+
+volumes:
+  pgdata:

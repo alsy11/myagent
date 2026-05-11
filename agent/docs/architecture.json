@@ -1,0 +1,59 @@
+{
+  "system": "Space Fractions",
+  "description": "A web-based interactive learning tool for sixth-grade students to improve fraction-solving skills",
+  "architecturalStyle": "microservices",
+  "deploymentTopology": "cloud",
+  "components": [
+    {
+      "name": "GameComponent",
+      "responsibilities": ["game logic", "user interaction", "game state management"],
+      "stack": {
+        "runtime": "Node.js 18",
+        "framework": "Express.js 4",
+        "database": "PostgreSQL 14",
+        "cache": "Redis 6",
+        "auth": "OAuth2"
+      },
+      "apis": {
+        "external": "/play GET, /score GET, /answer POST",
+        "internal": "proto GameService"
+      },
+      "schema": "games(id, game_state JSONB)"
+    },
+    {
+      "name": "QuestionComponent",
+      "responsibilities": ["question management", "data persistence", "answer validation"],
+      "schema": "questions(id, prompt, options JSONB, correct_answer, difficulty)"
+    },
+    {
+      "name": "UserComponent",
+      "responsibilities": ["authentication", "authorization", "user profile"]
+    },
+    {
+      "name": "AdminComponent",
+      "responsibilities": ["question updates", "system administration"]
+    }
+  ],
+  "requirements": {
+    "functional": [
+      { "id": "FR-1", "text": "Play game", "component": "GameComponent" },
+      { "id": "FR-2", "text": "View score", "component": "GameComponent" },
+      { "id": "FR-3", "text": "Update questions", "component": "AdminComponent" },
+      { "id": "FR-4", "text": "View help", "component": "UserComponent" }
+    ],
+    "nonFunctional": [
+      { "id": "NFR-1", "text": "Performance - respond quickly to user input", "component": "GameComponent" }
+    ],
+    "architectural": [
+      { "id": "ASR-1", "text": "Data durability - question data persisted and recoverable", "component": "QuestionComponent" },
+      { "id": "ASR-2", "text": "Security - encrypted auth", "component": "UserComponent" }
+    ]
+  },
+  "gameFlow": [
+    "Intro screen",
+    "Main menu",
+    "Fraction question series (multiple choice)",
+    "Score display",
+    "Ending feedback scene"
+  ]
+}

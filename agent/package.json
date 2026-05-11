@@ -1,0 +1,16 @@
+{
+  "name": "space-fractions-code-agent",
+  "version": "1.0.0",
+  "description": "Code agent powered by DeepSeek API that generates the Space Fractions project",
+  "main": "agent.js",
+  "scripts": {
+    "generate": "node -r dotenv/config agent.js",
+    "generate:reasoner": "set DEEPSEEK_MODEL=deepseek-reasoner&& node -r dotenv/config agent.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.3.1"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

@@ -1,0 +1,490 @@
+openapi: "3.0.3"
+info:
+  title: Space Fractions API
+  description: API for the Space Fractions fraction-learning game for sixth-grade students.
+  version: "1.0.0"
+  contact:
+    name: Space Fractions Team
+servers:
+  - url: http://localhost:3000/api
+    description: Local development server
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        username:
+          type: string
+        display_name:
+          type: string
+        role:
+          type: string
+          enum: [student, admin]
+        created_at:
+          type: string
+          format: date-time
+
+    Question:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        prompt:
+          type: string
+        options:
+          type: array
+          items:
+            type: string
+        correct_answer:
+          type: string
+        difficulty:
+          type: string
+          enum: [easy, medium, hard]
+        created_at:
+          type: string
+          format: date-time
+
+    GameState:
+      type: object
+      properties:
+        gameId:
+          type: string
+          format: uuid
+        state:
+          type: string
+          enum: [waiting, playing, paused, finished]
+        score:
+          type: integer
+        total:
+          type: integer
+        currentIndex:
+          type: integer
+        currentQuestion:
+          $ref: '#/components/schemas/Question'
+        answeredCount:
+          type: integer
+        correctCount:
+          type: integer
+
+    AnswerResult:
+      type: object
+      properties:
+        isCorrect:
+          type: boolean
+        correctAnswer:
+          type: string
+        score:
+          type: integer
+        finished:
+          type: boolean
+        nextQuestion:
+          $ref: '#/components/schemas/Question'
+        totalQuestions:
+          type: integer
+        answeredQuestions:
+          type: integer
+
+    ScoreResponse:
+      type: object
+      properties:
+        gameId:
+          type: string
+        score:
+          type: integer
+        total:
+          type: integer
+        state:
+          type: string
+        currentIndex:
+          type: integer
+        answeredCount:
+          type: integer
+        correctCount:
+          type: integer
+
+    Error:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+
+paths:
+  /users/register:
+    post:
+      summary: Register a new user
+      tags: [Users]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+                displayName:
+                  type: string
+      responses:
+        "201":
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      user:
+                        $ref: '#/components/schemas/User'
+                      token:
+                        type: string
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /users/login:
+    post:
+      summary: Login with username and password
+      tags: [Users]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      user:
+                        $ref: '#/components/schemas/User'
+                      token:
+                        type: string
+        "401":
+          description: Invalid credentials
+
+  /users/me:
+    get:
+      summary: Get current user profile
+      tags: [Users]
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: User profile
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/User'
+
+  /game/start:
+    post:
+      summary: Start a new game
+      tags: [Game]
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Game started
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/GameState'
+
+  /game/{gameId}/answer:
+    post:
+      summary: Submit an answer for the current question
+      tags: [Game]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: gameId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [answer]
+              properties:
+                answer:
+                  type: string
+      responses:
+        "200":
+          description: Answer processed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/AnswerResult'
+        "400":
+          description: Invalid answer or game state
+        "404":
+          description: Game not found
+
+  /game/{gameId}/score:
+    get:
+      summary: Get current game score and status
+      tags: [Game]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: gameId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Score data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/ScoreResponse'
+
+  /game/{gameId}/pause:
+    post:
+      summary: Pause the game
+      tags: [Game]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: gameId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Game paused
+        "400":
+          description: Game not in playing state
+        "404":
+          description: Game not found
+
+  /game/{gameId}/resume:
+    post:
+      summary: Resume a paused game
+      tags: [Game]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: gameId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Game resumed
+        "400":
+          description: Game not in paused state
+        "404":
+          description: Game not found
+
+  /questions:
+    get:
+      summary: Get all questions (admin only)
+      tags: [Questions]
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: List of questions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Question'
+    post:
+      summary: Create a new question (admin only)
+      tags: [Questions]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [prompt, options, correct_answer]
+              properties:
+                prompt:
+                  type: string
+                options:
+                  type: array
+                  items:
+                    type: string
+                correct_answer:
+                  type: string
+                difficulty:
+                  type: string
+                  enum: [easy, medium, hard]
+      responses:
+        "201":
+          description: Question created
+        "400":
+          description: Validation error
+
+  /questions/{id}:
+    get:
+      summary: Get a question by id (admin only)
+      tags: [Questions]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Question data
+        "404":
+          description: Question not found
+    put:
+      summary: Update a question (admin only)
+      tags: [Questions]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                prompt:
+                  type: string
+                options:
+                  type: array
+                  items:
+                    type: string
+                correct_answer:
+                  type: string
+                difficulty:
+                  type: string
+      responses:
+        "200":
+          description: Question updated
+        "400":
+          description: Validation error
+        "404":
+          description: Question not found
+    delete:
+      summary: Delete a question (admin only)
+      tags: [Questions]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Question deleted
+        "404":
+          description: Question not found
+
+  /health:
+    get:
+      summary: Health check
+      tags: [System]
+      responses:
+        "200":
+          description: API is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  timestamp:
+                    type: string
+                    format: date-time

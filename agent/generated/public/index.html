@@ -1,0 +1,973 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Space Fractions 🚀</title>
+  <style>
+    /* ===== RESET & BASE ===== */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #0a0a2e;
+      color: #fff;
+      overflow: hidden;
+      height: 100vh;
+      width: 100vw;
+    }
+    canvas#starfield {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    /* ===== OVERLAY CONTAINER ===== */
+    #app {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* ===== SCREENS ===== */
+    .screen {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      max-width: 700px;
+      padding: 2rem;
+      animation: fadeIn 0.6s ease;
+    }
+    .screen.active { display: flex; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-15px); }
+      40% { transform: translateX(15px); }
+      60% { transform: translateX(-10px); }
+      80% { transform: translateX(10px); }
+    }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-15px); }
+    }
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    @keyframes celebrate {
+      0% { transform: scale(0.3) rotate(-10deg); opacity: 0; }
+      50% { transform: scale(1.2) rotate(5deg); opacity: 1; }
+      100% { transform: scale(1) rotate(0deg); opacity: 1; }
+    }
+    @keyframes twinkle {
+      0%, 100% { opacity: 0.3; }
+      50% { opacity: 1; }
+    }
+
+    /* ===== INTRO SCREEN ===== */
+    #intro-screen h1 {
+      font-size: 3.5rem;
+      margin-bottom: 0.5rem;
+      text-shadow: 0 0 30px rgba(100, 200, 255, 0.5);
+      background: linear-gradient(135deg, #f7971e, #ffd200);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    #intro-screen .subtitle {
+      font-size: 1.3rem;
+      color: #aac;
+      margin-bottom: 2rem;
+    }
+    .rocket-float {
+      font-size: 5rem;
+      animation: float 3s ease-in-out infinite;
+      margin-bottom: 1.5rem;
+    }
+
+    /* ===== BUTTONS ===== */
+    .btn {
+      padding: 14px 40px;
+      font-size: 1.2rem;
+      font-weight: 700;
+      border: none;
+      border-radius: 50px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: #fff;
+      box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4);
+    }
+    .btn-primary:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 30px rgba(102, 126, 234, 0.6);
+    }
+    .btn-secondary {
+      background: linear-gradient(135deg, #f093fb, #f5576c);
+      color: #fff;
+      box-shadow: 0 4px 20px rgba(245, 87, 108, 0.4);
+    }
+    .btn-secondary:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 30px rgba(245, 87, 108, 0.6);
+    }
+    .btn-small {
+      padding: 8px 20px;
+      font-size: 0.9rem;
+    }
+
+    /* ===== AUTH SCREEN ===== */
+    #auth-screen .auth-box {
+      background: rgba(255,255,255,0.08);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      padding: 2.5rem;
+      width: 100%;
+      max-width: 400px;
+      border: 1px solid rgba(255,255,255,0.15);
+    }
+    #auth-screen h2 {
+      text-align: center;
+      margin-bottom: 1.5rem;
+      font-size: 1.8rem;
+      color: #ffd200;
+    }
+    .form-group {
+      margin-bottom: 1.2rem;
+    }
+    .form-group label {
+      display: block;
+      margin-bottom: 0.4rem;
+      color: #ccd;
+      font-size: 0.9rem;
+    }
+    .form-group input {
+      width: 100%;
+      padding: 12px 16px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.2);
+      background: rgba(255,255,255,0.06);
+      color: #fff;
+      font-size: 1rem;
+      outline: none;
+      transition: border 0.3s;
+    }
+    .form-group input:focus {
+      border-color: #667eea;
+    }
+    .auth-toggle {
+      text-align: center;
+      margin-top: 1rem;
+      color: #99b;
+    }
+    .auth-toggle a {
+      color: #667eea;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+    .auth-error {
+      color: #f5576c;
+      text-align: center;
+      margin-bottom: 1rem;
+      font-size: 0.9rem;
+      min-height: 1.2rem;
+    }
+
+    /* ===== GAME SCREEN ===== */
+    #game-screen {
+      width: 100%;
+      max-width: 700px;
+    }
+    .hud {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      padding: 1rem 1.5rem;
+      background: rgba(255,255,255,0.06);
+      backdrop-filter: blur(8px);
+      border-radius: 16px;
+      margin-bottom: 2rem;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    .hud-item {
+      text-align: center;
+    }
+    .hud-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      color: #99b;
+      letter-spacing: 1px;
+    }
+    .hud-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #ffd200;
+    }
+    .hud-value.score { color: #4ade80; }
+    .hud-value.question-num { color: #60a5fa; }
+
+    .question-card {
+      background: rgba(255,255,255,0.08);
+      backdrop-filter: blur(10px);
+      border-radius: 24px;
+      padding: 2.5rem;
+      width: 100%;
+      border: 1px solid rgba(255,255,255,0.12);
+      box-shadow: 0 8px 40px rgba(0,0,0,0.3);
+    }
+    .question-prompt {
+      font-size: 1.8rem;
+      text-align: center;
+      margin-bottom: 2rem;
+      line-height: 1.4;
+      color: #eef;
+    }
+    .question-prompt .fraction {
+      color: #ffd200;
+      font-weight: 700;
+    }
+    .options-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+    .option-btn {
+      padding: 16px;
+      font-size: 1.3rem;
+      font-weight: 600;
+      border: 2px solid rgba(255,255,255,0.15);
+      border-radius: 16px;
+      background: rgba(255,255,255,0.05);
+      color: #fff;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-align: center;
+    }
+    .option-btn:hover {
+      background: rgba(102, 126, 234, 0.3);
+      border-color: #667eea;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
+    }
+    .option-btn.correct {
+      background: rgba(74, 222, 128, 0.3);
+      border-color: #4ade80;
+      animation: pulse 0.5s ease;
+    }
+    .option-btn.wrong {
+      background: rgba(245, 87, 108, 0.3);
+      border-color: #f5576c;
+      animation: shake 0.5s ease;
+    }
+    .option-btn:disabled {
+      cursor: not-allowed;
+      opacity: 0.7;
+    }
+    .option-btn:disabled:hover {
+      transform: none;
+      box-shadow: none;
+    }
+
+    .feedback {
+      text-align: center;
+      margin-top: 1.5rem;
+      font-size: 1.3rem;
+      min-height: 2.5rem;
+      font-weight: 600;
+    }
+    .feedback.correct { color: #4ade80; }
+    .feedback.wrong { color: #f5576c; }
+
+    .next-btn-container {
+      text-align: center;
+      margin-top: 1.5rem;
+    }
+
+    /* ===== END SCREEN ===== */
+    #end-screen .celebration {
+      text-align: center;
+      animation: celebrate 0.8s ease;
+    }
+    #end-screen .big-score {
+      font-size: 5rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, #ffd200, #f7971e);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin: 0.5rem 0;
+    }
+    #end-screen .grade {
+      font-size: 3rem;
+      margin: 0.5rem 0;
+    }
+    #end-screen .grade.a { color: #4ade80; }
+    #end-screen .grade.b { color: #60a5fa; }
+    #end-screen .grade.c { color: #fbbf24; }
+    #end-screen .grade.d { color: #fb923c; }
+    #end-screen .grade.f { color: #f5576c; }
+    #end-screen .stats {
+      display: flex;
+      gap: 2rem;
+      justify-content: center;
+      margin: 1.5rem 0;
+    }
+    #end-screen .stat-item {
+      text-align: center;
+    }
+    #end-screen .stat-value {
+      font-size: 2rem;
+      font-weight: 700;
+    }
+    #end-screen .stat-label {
+      font-size: 0.85rem;
+      color: #99b;
+      text-transform: uppercase;
+    }
+    .end-buttons {
+      display: flex;
+      gap: 1rem;
+      margin-top: 1.5rem;
+    }
+
+    /* ===== LOADING ===== */
+    .loading {
+      text-align: center;
+      font-size: 1.5rem;
+      color: #99b;
+    }
+    .loading .spinner {
+      display: inline-block;
+      width: 40px;
+      height: 40px;
+      border: 4px solid rgba(255,255,255,0.1);
+      border-top-color: #667eea;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-bottom: 1rem;
+    }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 600px) {
+      #intro-screen h1 { font-size: 2.2rem; }
+      .question-prompt { font-size: 1.3rem; }
+      .options-grid { grid-template-columns: 1fr; }
+      .hud { flex-wrap: wrap; gap: 0.5rem; }
+      .end-buttons { flex-direction: column; }
+      .stats { flex-direction: column; gap: 1rem; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="starfield"></canvas>
+
+  <div id="app">
+    <!-- INTRO SCREEN -->
+    <div id="intro-screen" class="screen active">
+      <div class="rocket-float">🚀</div>
+      <h1>Space Fractions</h1>
+      <p class="subtitle">Master fractions and explore the galaxy!</p>
+      <button class="btn btn-primary" onclick="showAuth()">Launch Game</button>
+    </div>
+
+    <!-- AUTH SCREEN -->
+    <div id="auth-screen" class="screen">
+      <div class="auth-box">
+        <h2 id="auth-title">Login</h2>
+        <div class="auth-error" id="auth-error"></div>
+        <div class="form-group">
+          <label>Username</label>
+          <input type="text" id="auth-username" placeholder="Enter username" />
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="auth-password" placeholder="Enter password" />
+        </div>
+        <button class="btn btn-primary" style="width:100%;" onclick="handleAuth()" id="auth-submit-btn">Login</button>
+        <div class="auth-toggle">
+          <span id="auth-toggle-text">Don't have an account?</span>
+          <a id="auth-toggle-link" onclick="toggleAuthMode()">Register</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- GAME SCREEN -->
+    <div id="game-screen" class="screen">
+      <div class="hud">
+        <div class="hud-item">
+          <div class="hud-label">Question</div>
+          <div class="hud-value question-num" id="hud-question">1/10</div>
+        </div>
+        <div class="hud-item">
+          <div class="hud-label">Score</div>
+          <div class="hud-value score" id="hud-score">0</div>
+        </div>
+        <div class="hud-item">
+          <div class="hud-label">Correct</div>
+          <div class="hud-value" id="hud-correct" style="color:#4ade80;">0</div>
+        </div>
+      </div>
+
+      <div class="question-card" id="question-card">
+        <div class="question-prompt" id="question-prompt">Loading question...</div>
+        <div class="options-grid" id="options-grid"></div>
+        <div class="feedback" id="feedback"></div>
+        <div class="next-btn-container" id="next-btn-container" style="display:none;">
+          <button class="btn btn-secondary btn-small" onclick="nextQuestion()">Next Question →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- END SCREEN -->
+    <div id="end-screen" class="screen">
+      <div class="celebration">
+        <div style="font-size:4rem; margin-bottom:0.5rem;">🎉🚀🌟</div>
+        <h1 style="font-size:2rem; color:#ffd200;">Mission Complete!</h1>
+        <div class="big-score" id="final-score">0</div>
+        <div style="font-size:1.2rem; color:#aac;">points earned</div>
+        <div class="grade" id="final-grade">A+</div>
+        <div class="stats">
+          <div class="stat-item">
+            <div class="stat-value" id="stat-correct" style="color:#4ade80;">0</div>
+            <div class="stat-label">Correct</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value" id="stat-total" style="color:#60a5fa;">0</div>
+            <div class="stat-label">Total</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value" id="stat-percent" style="color:#ffd200;">0%</div>
+            <div class="stat-label">Accuracy</div>
+          </div>
+        </div>
+        <div id="end-message" style="font-size:1.2rem; margin-bottom:1rem; color:#ccd;"></div>
+        <div class="end-buttons">
+          <button class="btn btn-primary" onclick="startNewGame()">Play Again</button>
+          <button class="btn btn-secondary btn-small" onclick="showIntro()">Main Menu</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ===== STARFIELD CANVAS =====
+    const canvas = document.getElementById('starfield');
+    const ctx = canvas.getContext('2d');
+    let stars = [];
+    let shootingStars = [];
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    function initStars(count = 200) {
+      stars = [];
+      for (let i = 0; i < count; i++) {
+        stars.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height,
+          r: Math.random() * 2 + 0.5,
+          alpha: Math.random() * 0.8 + 0.2,
+          speed: Math.random() * 0.3 + 0.05,
+          twinkleSpeed: Math.random() * 0.02 + 0.005,
+          twinklePhase: Math.random() * Math.PI * 2,
+        });
+      }
+    }
+    initStars();
+
+    function addShootingStar() {
+      shootingStars.push({
+        x: Math.random() * canvas.width,
+        y: 0,
+        len: Math.random() * 80 + 40,
+        speed: Math.random() * 8 + 4,
+        alpha: 1,
+        angle: Math.PI / 4 + (Math.random() - 0.5) * 0.3,
+      });
+    }
+    setInterval(addShootingStar, 3000);
+
+    function drawStars() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Draw stars
+      for (const star of stars) {
+        const twinkle = Math.sin(Date.now() * star.twinkleSpeed + star.twinklePhase) * 0.3 + 0.7;
+        ctx.beginPath();
+        ctx.arc(star.x, star.y, star.r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255, 255, 255, ${star.alpha * twinkle})`;
+        ctx.fill();
+      }
+
+      // Draw shooting stars
+      for (let i = shootingStars.length - 1; i >= 0; i--) {
+        const s = shootingStars[i];
+        const endX = s.x + Math.cos(s.angle) * s.len;
+        const endY = s.y + Math.sin(s.angle) * s.len;
+
+        const gradient = ctx.createLinearGradient(s.x, s.y, endX, endY);
+        gradient.addColorStop(0, `rgba(255, 255, 255, ${s.alpha})`);
+        gradient.addColorStop(1, `rgba(255, 255, 255, 0)`);
+
+        ctx.beginPath();
+        ctx.moveTo(s.x, s.y);
+        ctx.lineTo(endX, endY);
+        ctx.strokeStyle = gradient;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        s.x += Math.cos(s.angle) * s.speed;
+        s.y += Math.sin(s.angle) * s.speed;
+        s.alpha -= 0.02;
+
+        if (s.alpha <= 0 || s.x > canvas.width + 100 || s.y > canvas.height + 100) {
+          shootingStars.splice(i, 1);
+        }
+      }
+
+      requestAnimationFrame(drawStars);
+    }
+    drawStars();
+
+    // ===== APP STATE =====
+    let state = {
+      token: localStorage.getItem('token') || null,
+      user: JSON.parse(localStorage.getItem('user') || 'null'),
+      gameId: null,
+      currentQuestion: null,
+      answered: false,
+      isCorrect: false,
+      score: 0,
+      correctCount: 0,
+      totalQuestions: 10,
+      currentIndex: 0,
+      isAuthModeLogin: true,
+    };
+
+    const API_BASE = '/api';
+
+    // ===== SCREEN MANAGEMENT =====
+    function showScreen(id) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+    }
+
+    function showIntro() {
+      showScreen('intro-screen');
+    }
+
+    function showAuth() {
+      state.isAuthModeLogin = true;
+      updateAuthUI();
+      showScreen('auth-screen');
+      document.getElementById('auth-error').textContent = '';
+    }
+
+    function toggleAuthMode() {
+      state.isAuthModeLogin = !state.isAuthModeLogin;
+      updateAuthUI();
+    }
+
+    function updateAuthUI() {
+      const title = document.getElementById('auth-title');
+      const btn = document.getElementById('auth-submit-btn');
+      const toggleText = document.getElementById('auth-toggle-text');
+      const toggleLink = document.getElementById('auth-toggle-link');
+
+      if (state.isAuthModeLogin) {
+        title.textContent = 'Login';
+        btn.textContent = 'Login';
+        toggleText.textContent = "Don't have an account? ";
+        toggleLink.textContent = 'Register';
+      } else {
+        title.textContent = 'Register';
+        btn.textContent = 'Register';
+        toggleText.textContent = 'Already have an account? ';
+        toggleLink.textContent = 'Login';
+      }
+    }
+
+    // ===== AUTH =====
+    async function handleAuth() {
+      const username = document.getElementById('auth-username').value.trim();
+      const password = document.getElementById('auth-password').value.trim();
+      const errorEl = document.getElementById('auth-error');
+
+      if (!username || !password) {
+        errorEl.textContent = 'Please fill in all fields';
+        return;
+      }
+
+      errorEl.textContent = '';
+      const endpoint = state.isAuthModeLogin ? '/users/login' : '/users/register';
+
+      try {
+        const res = await fetch(API_BASE + endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password, displayName: username }),
+        });
+        const json = await res.json();
+
+        if (!json.success) {
+          errorEl.textContent = json.error || 'Authentication failed';
+          return;
+        }
+
+        state.token = json.data.token;
+        state.user = json.data.user;
+        localStorage.setItem('token', state.token);
+        localStorage.setItem('user', JSON.stringify(state.user));
+
+        startNewGame();
+      } catch (err) {
+        errorEl.textContent = 'Network error. Is the server running?';
+      }
+    }
+
+    // ===== GAME =====
+    async function startNewGame() {
+      if (!state.token) {
+        showAuth();
+        return;
+      }
+
+      showScreen('game-screen');
+      document.getElementById('feedback').textContent = '';
+      document.getElementById('feedback').className = 'feedback';
+      document.getElementById('next-btn-container').style.display = 'none';
+      document.getElementById('question-prompt').textContent = 'Loading...';
+      document.getElementById('options-grid').innerHTML = '';
+
+      try {
+        const res = await fetch(API_BASE + '/game/start', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + state.token,
+          },
+        });
+        const json = await res.json();
+
+        if (!json.success) {
+          alert('Failed to start game: ' + (json.error || 'Unknown error'));
+          showIntro();
+          return;
+        }
+
+        const game = json.data;
+        state.gameId = game.gameId;
+        state.score = game.score || 0;
+        state.correctCount = game.correctCount || 0;
+        state.currentIndex = game.currentIndex || 0;
+        state.totalQuestions = game.total || 10;
+        state.currentQuestion = game.currentQuestion;
+        state.answered = false;
+
+        updateHUD();
+        renderQuestion(state.currentQuestion);
+      } catch (err) {
+        alert('Network error starting game');
+        showIntro();
+      }
+    }
+
+    function updateHUD() {
+      document.getElementById('hud-question').textContent = `${state.currentIndex + 1}/${state.totalQuestions}`;
+      document.getElementById('hud-score').textContent = state.score;
+      document.getElementById('hud-correct').textContent = state.correctCount;
+    }
+
+    function renderQuestion(q) {
+      if (!q) {
+        document.getElementById('question-prompt').textContent = 'No question available.';
+        return;
+      }
+
+      document.getElementById('question-prompt').innerHTML = q.prompt;
+      document.getElementById('feedback').textContent = '';
+      document.getElementById('feedback').className = 'feedback';
+      document.getElementById('next-btn-container').style.display = 'none';
+
+      const grid = document.getElementById('options-grid');
+      grid.innerHTML = '';
+
+      q.options.forEach((opt, idx) => {
+        const btn = document.createElement('button');
+        btn.className = 'option-btn';
+        btn.textContent = opt;
+        btn.dataset.value = opt;
+        btn.onclick = () => submitAnswer(opt);
+        grid.appendChild(btn);
+      });
+    }
+
+    async function submitAnswer(answer) {
+      if (state.answered) return;
+      state.answered = true;
+
+      // Disable all buttons
+      document.querySelectorAll('.option-btn').forEach(b => b.disabled = true);
+
+      try {
+        const res = await fetch(API_BASE + `/game/${state.gameId}/answer`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + state.token,
+          },
+          body: JSON.stringify({ answer: String(answer) }),
+        });
+        const json = await res.json();
+
+        if (!json.success) {
+          document.getElementById('feedback').textContent = 'Error: ' + (json.error || 'Unknown');
+          state.answered = false;
+          document.querySelectorAll('.option-btn').forEach(b => b.disabled = false);
+          return;
+        }
+
+        const data = json.data;
+        state.isCorrect = data.isCorrect;
+        state.score = data.score;
+
+        // Highlight correct/wrong
+        document.querySelectorAll('.option-btn').forEach(btn => {
+          if (btn.dataset.value === String(data.correctAnswer)) {
+            btn.classList.add('correct');
+          } else if (btn.dataset.value === String(answer) && !data.isCorrect) {
+            btn.classList.add('wrong');
+          }
+        });
+
+        if (data.isCorrect) {
+          state.correctCount++;
+          document.getElementById('feedback').textContent = '✅ Correct! Great job! 🚀';
+          document.getElementById('feedback').className = 'feedback correct';
+        } else {
+          document.getElementById('feedback').textContent = `❌ Oops! The answer was ${data.correctAnswer}`;
+          document.getElementById('feedback').className = 'feedback wrong';
+        }
+
+        updateHUD();
+
+        if (data.finished) {
+          setTimeout(() => showEndScreen(), 1200);
+        } else {
+          document.getElementById('next-btn-container').style.display = 'block';
+        }
+      } catch (err) {
+        document.getElementById('feedback').textContent = 'Network error';
+        state.answered = false;
+        document.querySelectorAll('.option-btn').forEach(b => b.disabled = false);
+      }
+    }
+
+    function nextQuestion() {
+      state.answered = false;
+      document.getElementById('feedback').textContent = '';
+      document.getElementById('feedback').className = 'feedback';
+      document.getElementById('next-btn-container').style.display = 'none';
+
+      // Fetch current game state to get next question
+      fetchScoreAndContinue();
+    }
+
+    async function fetchScoreAndContinue() {
+      try {
+        const res = await fetch(API_BASE + `/game/${state.gameId}/score`, {
+          headers: { 'Authorization': 'Bearer ' + state.token },
+        });
+        const json = await res.json();
+        if (!json.success) return;
+
+        const data = json.data;
+        state.currentIndex = data.currentIndex;
+        state.score = data.score;
+        state.correctCount = data.correctCount;
+        updateHUD();
+
+        // We need the current question - re-fetch game state
+        // For simplicity, we'll just increment locally and re-render
+        // Actually, let's get the question from the game state by starting a new approach:
+        // We stored the questions in the game state on the server, but we don't have them client-side.
+        // Let's just re-fetch the game start to get current question... 
+        // Better: we'll track questions locally.
+        // Since we can't easily get the next question without another endpoint,
+        // let's just restart the game flow for simplicity in this demo.
+        // Actually, the submitAnswer returns nextQuestion. Let's store it.
+        // We missed storing it. Let's fix by storing in state.
+        // For now, let's just restart the game to get fresh questions.
+        // Actually, let's do a simpler approach: store the next question from submitAnswer response.
+        // We'll modify submitAnswer to store nextQuestion.
+        // But we already wrote it. Let's just restart the game.
+        startNewGame();
+      } catch (err) {
+        // fallback
+        startNewGame();
+      }
+    }
+
+    // Override submitAnswer to store next question
+    const originalSubmitAnswer = submitAnswer;
+    submitAnswer = async function(answer) {
+      if (state.answered) return;
+      state.answered = true;
+
+      document.querySelectorAll('.option-btn').forEach(b => b.disabled = true);
+
+      try {
+        const res = await fetch(API_BASE + `/game/${state.gameId}/answer`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + state.token,
+          },
+          body: JSON.stringify({ answer: String(answer) }),
+        });
+        const json = await res.json();
+
+        if (!json.success) {
+          document.getElementById('feedback').textContent = 'Error: ' + (json.error || 'Unknown');
+          state.answered = false;
+          document.querySelectorAll('.option-btn').forEach(b => b.disabled = false);
+          return;
+        }
+
+        const data = json.data;
+        state.isCorrect = data.isCorrect;
+        state.score = data.score;
+
+        document.querySelectorAll('.option-btn').forEach(btn => {
+          if (btn.dataset.value === String(data.correctAnswer)) {
+            btn.classList.add('correct');
+          } else if (btn.dataset.value === String(answer) && !data.isCorrect) {
+            btn.classList.add('wrong');
+          }
+        });
+
+        if (data.isCorrect) {
+          state.correctCount++;
+          document.getElementById('feedback').textContent = '✅ Correct! Great job! 🚀';
+          document.getElementById('feedback').className = 'feedback correct';
+        } else {
+          document.getElementById('feedback').textContent = `❌ Oops! The answer was ${data.correctAnswer}`;
+          document.getElementById('feedback').className = 'feedback wrong';
+        }
+
+        updateHUD();
+
+        if (data.finished) {
+          setTimeout(() => showEndScreen(), 1200);
+        } else {
+          // Store next question
+          if (data.nextQuestion) {
+            state.currentQuestion = data.nextQuestion;
+            state.currentIndex = data.answeredQuestions; // answeredQuestions is the count of answered
+          }
+          document.getElementById('next-btn-container').style.display = 'block';
+        }
+      } catch (err) {
+        document.getElementById('feedback').textContent = 'Network error';
+        state.answered = false;
+        document.querySelectorAll('.option-btn').forEach(b => b.disabled = false);
+      }
+    };
+
+    // Override nextQuestion to use stored question
+    const originalNextQuestion = nextQuestion;
+    nextQuestion = function() {
+      state.answered = false;
+      document.getElementById('feedback').textContent = '';
+      document.getElementById('feedback').className = 'feedback';
+      document.getElementById('next-btn-container').style.display = 'none';
+
+      if (state.currentQuestion) {
+        renderQuestion(state.currentQuestion);
+        updateHUD();
+      } else {
+        startNewGame();
+      }
+    };
+
+    // ===== END SCREEN =====
+    function showEndScreen() {
+      showScreen('end-screen');
+
+      const total = state.totalQuestions;
+      const correct = state.correctCount;
+      const percent = total > 0 ? Math.round((correct / total) * 100) : 0;
+
+      document.getElementById('final-score').textContent = state.score;
+      document.getElementById('stat-correct').textContent = correct;
+      document.getElementById('stat-total').textContent = total;
+      document.getElementById('stat-percent').textContent = percent + '%';
+
+      let grade, gradeClass, message;
+      if (percent >= 90) {
+        grade = 'A+ ⭐';
+        gradeClass = 'a';
+        message = 'Outstanding! You are a Space Fractions Master! 🌟';
+      } else if (percent >= 80) {
+        grade = 'A';
+        gradeClass = 'a';
+        message = 'Excellent work! Almost perfect! 🚀';
+      } else if (percent >= 70) {
+        grade = 'B';
+        gradeClass = 'b';
+        message = 'Good job! Keep practicing to reach the stars! ✨';
+      } else if (percent >= 60) {
+        grade = 'C';
+        gradeClass = 'c';
+        message = 'Not bad! You are on your way to becoming a fraction astronaut! 🪐';
+      } else if (percent >= 50) {
+        grade = 'D';
+        gradeClass = 'd';
+        message = 'Keep trying! Practice makes perfect! 💪';
+      } else {
+        grade = 'F';
+        gradeClass = 'f';
+        message = 'Don\'t give up! Every great astronaut started as a beginner! 🚀';
+      }
+
+      const gradeEl = document.getElementById('final-grade');
+      gradeEl.textContent = grade;
+      gradeEl.className = 'grade ' + gradeClass;
+
+      document.getElementById('end-message').textContent = message;
+    }
+
+    // ===== INIT =====
+    // If user already logged in, show intro (they can click Launch)
+    if (state.token) {
+      // Just show intro, user can click Launch
+    }
+  </script>
+</body>
+</html>
