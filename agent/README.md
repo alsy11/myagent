@@ -51,7 +51,7 @@ npm install
 cp .env.example .env          # fill in PostgreSQL / Redis creds
 psql $DATABASE_URL -f sql/init.sql
 npm start
-# → http://localhost:3000
+# → http://localhost:3001
 ```
 
 ## Model comparison
