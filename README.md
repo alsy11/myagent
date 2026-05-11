@@ -84,7 +84,7 @@ myagent/
 在 `agent/` 下创建 `.env`：
 
 ```env
-DEEPSEEK_API_KEY=your_api_key_here
+DEEPSEEK_API_KEY=your_api_key_here   #sk-82adc1137bc448deb97fdfbd257a4002
 DEEPSEEK_MODEL=deepseek-chat
 ```
 
